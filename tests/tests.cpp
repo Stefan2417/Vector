@@ -364,3 +364,62 @@ TEST_CASE("Faulty constructors") {
     }
 
 }
+
+
+struct A {
+    static size_t count;
+    int *r;
+
+    A() = delete;
+
+    A(int x) : r(new int(x)) {
+        count++;
+    }
+
+    A(const A &oth) {
+        count++;
+        if (count == 4) {
+            count--;
+            throw std::runtime_error("counter test");
+        }
+        r = new int(*oth.r);
+    }
+
+    ~A() {
+        count--;
+        delete r;
+        if (count < 0) {
+            throw std::runtime_error("GG");
+        }
+    }
+};
+
+size_t A::count = 0;
+
+
+TEST_CASE("Bad PushBack") {
+    SECTION("UB destructor, test for last commit") {
+        Vector<A> g;
+        A t{4};
+        try {
+            g.PushBack(t);
+        } catch (std::exception &e) {
+
+        }
+        try {
+            g.PushBack(t);
+        } catch (std::exception &e) {
+
+        }
+    }
+    REQUIRE(A::count == 0);
+    SECTION("strong safety in PushBack") {
+        Vector<A> g;
+        g.Reserve(100);
+        A t{4};
+        g.PushBack(t);
+        g.PushBack(t);
+        REQUIRE_THROWS(g.PushBack(t));
+        REQUIRE(g.Size() == 2);
+    }
+}

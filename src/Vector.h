@@ -73,6 +73,7 @@ public:
         if (new_capacity <= cap_) {
             return;
         }
+        new_capacity = std::max(new_capacity, cap_ << 1);
         T *new_data = reinterpret_cast<T *>(new char[new_capacity * sizeof(T)]);
         size_t r_ind = 0;
         try {
@@ -118,9 +119,6 @@ public:
             new(new_data + size_) T(value);
         } catch (...) {
             Destroy(new_data, r_ind);
-            if (r_ind == size_) {
-                (new_data + size_)->~T();
-            }
             delete[] reinterpret_cast<char *>(new_data);
             throw;
         }
@@ -147,9 +145,6 @@ public:
             new(new_data + size_) T(std::forward<T>(value));
         } catch (...) {
             Destroy(new_data, r_ind);
-            if (r_ind == size_) {
-                (new_data + size_)->~T();
-            }
             delete[] reinterpret_cast<char *>(new_data);
             throw;
         }
@@ -299,5 +294,17 @@ public:
 
     Iterator end() { // NOLINT
         return Iterator(data_ + size_);
+    }
+
+    bool operator==(const Vector &oth) const {
+        if (Size() != oth.Size()) {
+            return false;
+        }
+        for (size_t i = 0; i < Size(); ++i) {
+            if (data_[i] != oth[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 };
